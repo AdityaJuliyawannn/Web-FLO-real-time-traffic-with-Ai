@@ -1,626 +1,1006 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitoring Lalu Lintas Semarang</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <title>FLO - A* Pathfinding</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary: #3498db;
-            --primary-dark: #2980b9;
-            --secondary: #2c3e50;
-            --light: #ecf0f1;
-            --danger: #e74c3c;
-            --warning: #f39c12;
-            --success: #2ecc71;
-            --transition: all 0.3s ease;
+            --primary: #4F46E5;
+            --primary-dark: #4338CA;
+            --secondary: #06B6D4;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --dark: #1F2937;
+            --light: #F9FAFB;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-        
-        body {
+
+        * {
+            margin: 0;
             padding: 0;
-            margin: 0;
-            background-color: #f5f7fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            box-sizing: border-box;
         }
-        
-        .navbar {
-            background: linear-gradient(135deg, var(--secondary) 0%, #34495e 100%);
-            padding: 15px 20px;
-            margin-bottom: 30px;
-            border-radius: 0 0 20px 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--dark);
+            overflow-x: hidden;
         }
-        
-        .navbar h1 {
-            margin: 0;
-            color: white;
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem 2rem;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            animation: slideDown 0.5s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo i {
             font-size: 2rem;
-            font-weight: 600;
-        }
-        
-        .navbar-icon {
-            margin-right: 15px;
+            color: var(--primary);
             animation: pulse 2s infinite;
         }
-        
+
         @keyframes pulse {
-            0% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.1);
-            }
-            100% {
-                transform: scale(1);
-            }
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
-        
-        .container-custom {
-            max-width: 95%;
+
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .logo p {
+            font-size: 0.875rem;
+            color: #6B7280;
+        }
+
+        .badge {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 2rem;
         }
-        
-        .cctv-container {
+
+        /* Stats Cards */
+        .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            animation: fadeIn 0.6s ease;
         }
-        
-        .cctv-feed {
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
             position: relative;
-            border-radius: 15px;
             overflow: hidden;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            transition: var(--transition);
-            background-color: #fff;
-            transform: translateY(0);
         }
-        
-        .cctv-feed:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
-        }
-        
-        .cctv-feed img {
-            width: 100%;
-            height: 220px;
-            display: block;
-            object-fit: cover;
-            transition: var(--transition);
-        }
-        
-        .cctv-feed:hover img {
-            transform: scale(1.03);
-        }
-        
-        .cctv-info {
+
+        .stat-card::before {
+            content: '';
             position: absolute;
-            bottom: 0;
+            top: 0;
             left: 0;
-            right: 0;
-            background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 80%, transparent 100%);
-            color: white;
-            padding: 15px;
-            transition: var(--transition);
+            width: 4px;
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.3s ease;
         }
-        
-        .cctv-feed:hover .cctv-info {
-            padding-bottom: 20px;
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
         }
-        
-        .cctv-info h5 {
-            margin: 0 0 8px 0;
+
+        .stat-card:hover::before {
+            width: 100%;
+            opacity: 0.1;
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .stat-icon.total { background: #DBEAFE; color: var(--primary); }
+        .stat-icon.lancar { background: #D1FAE5; color: var(--success); }
+        .stat-icon.padat { background: #FEF3C7; color: var(--warning); }
+        .stat-icon.macet { background: #FEE2E2; color: var(--danger); }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--dark);
+            animation: countUp 0.8s ease;
+        }
+
+        @keyframes countUp {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .stat-label {
+            color: #6B7280;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Route Control Panel */
+        .control-panel {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            animation: fadeIn 0.7s ease;
+        }
+
+        .panel-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-title i {
+            color: var(--primary);
+        }
+
+        .route-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
             font-weight: 600;
-            font-size: 1.2rem;
+            font-size: 0.875rem;
+            color: var(--dark);
         }
-        
-        .cctv-badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 15px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-top: 5px;
+
+        .form-group select {
+            padding: 0.75rem;
+            border: 2px solid #E5E7EB;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
         }
-        
-        .status-lancar {
-            background-color: var(--success);
-            color: white;
-        }
-        
-        .status-padat {
-            background-color: var(--warning);
-            color: white;
-        }
-        
-        .status-macet {
-            background-color: var(--danger);
-            color: white;
-        }
-        
-        .card {
-            border-radius: 15px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-            border: none;
-            overflow: hidden;
-            transition: var(--transition);
-        }
-        
-        .card:hover {
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
-        }
-        
-        .card-header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
-            font-weight: 600;
-            padding: 15px 20px;
-            border-bottom: none;
-        }
-        
-        .card-body {
-            padding: 25px;
-        }
-        
-        .form-label {
-            font-weight: 600;
-            color: var(--secondary);
-        }
-        
-        .form-select, .form-control {
-            border-radius: 10px;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            margin-bottom: 15px;
-            transition: var(--transition);
-        }
-        
-        .form-select:focus, .form-control:focus {
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.25);
+
+        .form-group select:focus {
+            outline: none;
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
         }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 1rem;
             border: none;
-            border-radius: 10px;
-            padding: 12px 25px;
+            border-radius: 8px;
             font-weight: 600;
-            transition: var(--transition);
-            box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
         }
-        
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+        }
+
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(52, 152, 219, 0.4);
+            box-shadow: 0 8px 16px rgba(79, 70, 229, 0.3);
         }
-        
-        .btn-primary:active {
-            transform: translateY(0);
+
+        .btn-secondary {
+            background: white;
+            color: var(--primary);
+            border: 2px solid var(--primary);
         }
-        
-        .list-group-item {
-            border-radius: 10px !important;
-            margin-bottom: 10px;
-            border: 1px solid #eee;
-            padding: 15px;
-            transition: var(--transition);
+
+        .btn-secondary:hover {
+            background: var(--primary);
+            color: white;
         }
-        
-        .list-group-item:hover {
-            background-color: #f8f9fa;
-            transform: translateX(5px);
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
         }
-        
-        .graph-image {
-            width: 100%;
-            height: auto;
-            max-height: 500px;
-            object-fit: contain;
-            margin-top: 20px;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: var(--transition);
+
+        /* Route Info */
+        .route-info {
+            background: linear-gradient(135deg, #EEF2FF, #E0E7FF);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-top: 1.5rem;
+            display: none;
+            animation: slideIn 0.4s ease;
         }
-        
-        .graph-image:hover {
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+
+        .route-info.show {
+            display: block;
         }
-        
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100px;
-        }
-        
-        .spinner-custom {
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(52, 152, 219, 0.2);
-            border-radius: 50%;
-            border-top-color: var(--primary);
-            animation: spin 1s ease-in-out infinite;
-        }
-        
-        @keyframes spin {
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
             to {
-                transform: rotate(360deg);
+                opacity: 1;
+                transform: translateX(0);
             }
         }
-        
-        .route-title {
+
+        .route-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .route-metric {
             display: flex;
             align-items: center;
-            margin-bottom: 15px;
+            gap: 0.5rem;
         }
-        
-        .route-icon {
-            margin-right: 10px;
+
+        .route-metric i {
             color: var(--primary);
         }
-        
-        .route-path {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            margin: 15px 0;
-            font-size: 1.1rem;
+
+        .route-details {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
         }
-        
-        .route-node {
+
+        .route-step {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        .route-step:last-child {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
             font-weight: 600;
-            color: var(--secondary);
+            text-transform: uppercase;
         }
-        
-        .route-arrow {
-            margin: 0 10px;
+
+        .status-badge.lancar {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .status-badge.padat {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .status-badge.macet {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        /* Map Section */
+        .map-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            animation: fadeIn 0.8s ease;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-title i {
             color: var(--primary);
-            animation: arrowMove 1.5s infinite;
         }
-        
-        @keyframes arrowMove {
-            0% {
-                transform: translateX(0);
-            }
-            50% {
-                transform: translateX(5px);
-            }
-            100% {
-                transform: translateX(0);
-            }
+
+        .map-container {
+            width: 100%;
+            height: 600px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #E5E7EB;
         }
-        
+
+        /* CCTV Section - Bottom Diagonal */
+        .cctv-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            animation: fadeIn 0.9s ease;
+        }
+
+        .cctv-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 1rem 0;
+        }
+
+        /* Custom Scrollbar */
+        .cctv-grid::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .cctv-grid::-webkit-scrollbar-track {
+            background: #F3F4F6;
+            border-radius: 4px;
+        }
+
+        .cctv-grid::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .cctv-card {
+            background: #F9FAFB;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: move;
+            user-select: none;
+        }
+
+        .cctv-card.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+
+        .cctv-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .cctv-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #E5E7EB;
+        }
+
+        .cctv-info {
+            padding: 1rem;
+        }
+
+        .cctv-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+
+        .cctv-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         .vehicle-count {
             display: flex;
             align-items: center;
+            gap: 0.5rem;
+            color: #6B7280;
+            font-size: 0.875rem;
         }
-        
-        .vehicle-icon {
-            margin-right: 5px;
-            color: var(--secondary);
-        }
-        
-        /* Live indicator */
-        .live-indicator {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background-color: rgba(0, 0, 0, 0.5);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            font-weight: 600;
+
+        /* Loading Animation */
+        .loading {
             display: flex;
+            flex-direction: column;
+            justify-content: center;
             align-items: center;
+            height: 200px;
+            gap: 1rem;
         }
-        
-        .live-dot {
-            width: 8px;
-            height: 8px;
-            background-color: #e74c3c;
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #E5E7EB;
+            border-top-color: var(--primary);
             border-radius: 50%;
-            margin-right: 5px;
-            animation: blink 1s infinite;
+            animation: spin 1s linear infinite;
         }
-        
-        @keyframes blink {
-            0% {
-                opacity: 0;
-            }
-            50% {
-                opacity: 1;
-            }
-            100% {
-                opacity: 0;
-            }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
-        
-        /* Responsive adjustments */
-        @media (max-width: 992px) {
-            .cctv-container {
-                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            }
-        }
-        
+
+        /* Responsive */
         @media (max-width: 768px) {
-            .navbar h1 {
-                font-size: 1.5rem;
+            .container {
+                padding: 1rem;
             }
-            
-            .cctv-container {
-                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .route-form {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .map-container {
+                height: 400px;
+            }
+
+            .cctv-grid {
+                grid-template-columns: 1fr;
             }
         }
-        
-        /* Footer */
-        .footer {
-            background: linear-gradient(135deg, var(--secondary) 0%, #34495e 100%);
-            color: white;
-            padding: 20px 0;
-            text-align: center;
-            margin-top: 50px;
-            border-radius: 20px 20px 0 0;
+
+        /* Smooth Transitions */
+        * {
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
     </style>
 </head>
 <body>
-    <div class="navbar">
-        <div class="container-custom">
-            <h1><i class="fas fa-traffic-light navbar-icon"></i> Monitoring Lalu Lintas Semarang</h1>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-traffic-light"></i>
+                <div>
+                    <h1>FLO</h1>
+                    <p>Real-time AI Detection System</p>
+                </div>
+            </div>
+            <div class="badge">
+                <i class="fas fa-bolt"></i>
+                A* Pathfinding Algorithm
+            </div>
         </div>
-    </div>
+    </header>
 
-    <div class="container-custom">
-        <div class="row">
-            <div class="col-lg-8">
-                <div class="cctv-container animate__animated animate__fadeIn">
-                    {% for i in range(8) %}
-                    <div class="cctv-feed">
-                        <div class="live-indicator">
-                            <div class="live-dot"></div>
-                            LIVE
-                        </div>
-                        <img id="cctv-{{ i }}" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAHgAoADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD+/iiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/Z" alt="CCTV {{ i }}" class="animate__animated animate__fadeIn">
-                        <div class="cctv-info">
-                            <h5>{{ node_labels[i] }}</h5>
-                            <p>
-                                <span class="cctv-badge status-lancar" id="status-{{ i }}">Memuat...</span>
-                                <span class="vehicle-count">
-                                    <i class="fas fa-car vehicle-icon"></i>
-                                    <span id="count-{{ i }}">0</span>
-                                </span>
-                            </p>
-                        </div>
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon total">
+                        <i class="fas fa-car"></i>
                     </div>
-                    {% endfor %}
+                </div>
+                <div class="stat-number" id="total-vehicles">-</div>
+                <div class="stat-label">Total Kendaraan</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon lancar">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                </div>
+                <div class="stat-number" id="lancar-count">-</div>
+                <div class="stat-label">Lokasi Lancar</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon padat">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                </div>
+                <div class="stat-number" id="padat-count">-</div>
+                <div class="stat-label">Lokasi Padat</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon macet">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                </div>
+                <div class="stat-number" id="macet-count">-</div>
+                <div class="stat-label">Lokasi Macet</div>
+            </div>
+        </div>
+
+        <!-- Route Control Panel -->
+        <div class="control-panel">
+            <h2 class="panel-title">
+                <i class="fas fa-route"></i>
+                Perencanaan Rute
+            </h2>
+
+            <div class="route-form">
+                <div class="form-group">
+                    <label for="start-location">
+                        <i class="fas fa-map-marker-alt"></i> Dari Lokasi
+                    </label>
+                    <select id="start-location">
+                        {% for node_id, label in node_labels.items() %}
+                        <option value="{{ node_id }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="end-location">
+                        <i class="fas fa-flag-checkered"></i> Ke Lokasi
+                    </label>
+                    <select id="end-location">
+                        {% for node_id, label in node_labels.items() %}
+                        <option value="{{ node_id }}" {% if node_id == 6 %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
 
-            <div class="col-lg-4">
-                <div class="card animate__animated animate__fadeInRight">
-                    <div class="card-header">
-                        <div class="route-title">
-                            <i class="fas fa-route fa-lg route-icon"></i>
-                            <h3 class="mb-0">Pilih Rute</h3>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <form id="route-form">
-                            <div class="mb-3">
-                                <label for="start-node" class="form-label">
-                                    <i class="fas fa-map-marker-alt me-2"></i>Titik Awal
-                                </label>
-                                <select class="form-select" id="start-node">
-                                    {% for key, value in node_labels.items() %}
-                                    <option value="{{ key }}">{{ value }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="end-node" class="form-label">
-                                    <i class="fas fa-flag-checkered me-2"></i>Titik Tujuan
-                                </label>
-                                <select class="form-select" id="end-node">
-                                    {% for key, value in node_labels.items() %}
-                                    <option value="{{ key }}" {% if key == 7 %}selected{% endif %}>{{ value }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-search me-2"></i>Cari Rute Terbaik
-                            </button>
-                        </form>
-                    </div>
-                </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="calculate-btn" onclick="calculateRoute()">
+                    <i class="fas fa-route"></i>
+                    Hitung Rute Optimal
+                </button>
+                <button class="btn btn-secondary" onclick="showAllLocations()">
+                    <i class="fas fa-map"></i>
+                    Tampilkan Semua Lokasi
+                </button>
+            </div>
 
-                <div class="card animate__animated animate__fadeInRight" style="animation-delay: 0.3s;">
-                    <div class="card-header">
-                        <div class="route-title">
-                            <i class="fas fa-map fa-lg route-icon"></i>
-                            <h3 class="mb-0">Hasil Rekomendasi Rute</h3>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div id="loading" class="loading d-none">
-                            <div class="spinner-custom"></div>
-                        </div>
-                        <div id="route-result">
-                            <p class="text-center"><i class="fas fa-info-circle me-2"></i>Silahkan pilih rute dan klik tombol "Cari Rute Terbaik"</p>
-                        </div>
-                        <div id="graph-container">
-                            <!-- Graph image will appear here -->
-                        </div>
-                    </div>
+            <!-- Route Information -->
+            <div class="route-info" id="route-info">
+                <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">
+                    <i class="fas fa-info-circle"></i> Informasi Rute
+                </h3>
+                <div class="route-summary" id="route-summary"></div>
+                <div class="route-details" id="route-details"></div>
+            </div>
+        </div>
+
+        <!-- Map Section -->
+        <div class="map-section">
+            <h2 class="section-title">
+                <i class="fas fa-map-marked-alt"></i>
+                Peta Interaktif
+            </h2>
+            <div class="map-container" id="map-container">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Memuat peta interaktif...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CCTV Section (Draggable) -->
+        <div class="cctv-section">
+            <h2 class="section-title">
+                <i class="fas fa-video"></i>
+                Live CCTV Monitoring
+                <span style="font-size: 0.875rem; color: #6B7280; font-weight: 400; margin-left: auto;">
+                    (Geser untuk menyusun ulang)
+                </span>
+            </h2>
+            <div class="cctv-grid" id="cctv-grid">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Memuat live stream CCTV...</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="footer">
-        <div class="container-custom">
-            <p>© 2025 Monitoring Lalu Lintas Semarang</p>
-        </div>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
     <script>
-        $(document).ready(function() {
-            // Function to update CCTV frames
-            function updateFrames() {
-                $.ajax({
-                    url: '/get_frames',
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function(data) {
-                        for (let nodeId in data) {
-                            const frameData = data[nodeId];
-                            $(`#cctv-${nodeId}`).attr('src', `data:image/jpeg;base64,${frameData.image}`);
-                            
-                            // Update status with animation
-                            const statusElement = $(`#status-${nodeId}`);
-                            const oldStatus = statusElement.text();
-                            const newStatus = frameData.status;
-                            
-                            if (oldStatus !== newStatus) {
-                                statusElement.fadeOut(200, function() {
-                                    statusElement.text(newStatus);
-                                    statusElement.removeClass('status-lancar status-padat status-macet');
-                                    
-                                    if (newStatus === 'Lancar') {
-                                        statusElement.addClass('status-lancar');
-                                    } else if (newStatus === 'Padat') {
-                                        statusElement.addClass('status-padat');
-                                    } else if (newStatus === 'Macet') {
-                                        statusElement.addClass('status-macet');
-                                    }
-                                    
-                                    statusElement.fadeIn(200);
-                                });
-                            } else {
-                                statusElement.text(newStatus);
-                                statusElement.removeClass('status-lancar status-padat status-macet');
-                                
-                                if (newStatus === 'Lancar') {
-                                    statusElement.addClass('status-lancar');
-                                } else if (newStatus === 'Padat') {
-                                    statusElement.addClass('status-padat');
-                                } else if (newStatus === 'Macet') {
-                                    statusElement.addClass('status-macet');
-                                }
-                            }
-                            
-                            // Update vehicle count with animation
-                            const countElement = $(`#count-${nodeId}`);
-                            const currentCount = parseInt(countElement.text());
-                            const newCount = frameData.vehicle_count;
-                            
-                            if (currentCount !== newCount) {
-                                countElement.fadeOut(200, function() {
-                                    countElement.text(newCount);
-                                    countElement.fadeIn(200);
-                                });
-                            } else {
-                                countElement.text(newCount);
-                            }
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error fetching frames:', error);
-                    }
+        // Global variables
+        let updateInterval;
+        let mapUpdateInterval;
+        let draggedElement = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            setupDragAndDrop();
+        });
+
+        function initializeApp() {
+            console.log('Initializing traffic monitor...');
+            updateFrames();
+            updateTrafficSummary();
+            showAllLocations();
+            
+            updateInterval = setInterval(updateFrames, 2000);
+            mapUpdateInterval = setInterval(updateTrafficSummary, 5000);
+        }
+
+        // Drag and Drop for CCTV cards
+        function setupDragAndDrop() {
+            const grid = document.getElementById('cctv-grid');
+            
+            grid.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(grid, e.clientY);
+                const dragging = document.querySelector('.dragging');
+                
+                if (afterElement == null) {
+                    grid.appendChild(dragging);
+                } else {
+                    grid.insertBefore(dragging, afterElement);
+                }
+            });
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.cctv-card:not(.dragging)')];
+            
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function updateFrames() {
+            fetch('/get_frames')
+                .then(response => response.json())
+                .then(data => {
+                    displayVideoFeeds(data);
+                })
+                .catch(error => {
+                    console.error('Error updating frames:', error);
                 });
+        }
+
+        function displayVideoFeeds(data) {
+            const grid = document.getElementById('cctv-grid');
+            grid.innerHTML = '';
+
+            Object.keys(data).forEach(nodeId => {
+                const frame = data[nodeId];
+                const card = document.createElement('div');
+                card.className = 'cctv-card';
+                card.draggable = true;
+                
+                card.addEventListener('dragstart', () => {
+                    card.classList.add('dragging');
+                });
+                
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('dragging');
+                });
+                
+                card.innerHTML = `
+                    <img src="data:image/jpeg;base64,${frame.image}" 
+                         alt="CCTV ${nodeId}" 
+                         class="cctv-image">
+                    <div class="cctv-info">
+                        <div class="cctv-title">${getLocationName(nodeId)}</div>
+                        <div class="cctv-stats">
+                            <span class="status-badge ${frame.status.toLowerCase()}">${frame.status}</span>
+                            <span class="vehicle-count">
+                                <i class="fas fa-car"></i>
+                                ${frame.vehicle_count}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        function getLocationName(nodeId) {
+            const labels = {{ node_labels | tojson | safe }};
+            return labels[nodeId] || `Lokasi ${nodeId}`;
+        }
+
+        function updateTrafficSummary() {
+            fetch('/get_traffic_summary')
+                .then(response => response.json())
+                .then(data => {
+                    animateNumber('total-vehicles', data.total_vehicles || 0);
+                    animateNumber('lancar-count', data.lancar_count || 0);
+                    animateNumber('padat-count', data.padat_count || 0);
+                    animateNumber('macet-count', data.macet_count || 0);
+                })
+                .catch(error => {
+                    console.error('Error updating summary:', error);
+                });
+        }
+
+        function animateNumber(elementId, targetValue) {
+            const element = document.getElementById(elementId);
+            const currentValue = parseInt(element.textContent) || 0;
+            
+            if (currentValue === targetValue) return;
+            
+            const duration = 500;
+            const steps = 20;
+            const stepValue = (targetValue - currentValue) / steps;
+            let currentStep = 0;
+            
+            const timer = setInterval(() => {
+                currentStep++;
+                const newValue = Math.round(currentValue + (stepValue * currentStep));
+                element.textContent = newValue;
+                
+                if (currentStep >= steps) {
+                    element.textContent = targetValue;
+                    clearInterval(timer);
+                }
+            }, duration / steps);
+        }
+
+        function calculateRoute() {
+            const startNode = parseInt(document.getElementById('start-location').value);
+            const endNode = parseInt(document.getElementById('end-location').value);
+            
+            if (startNode === endNode) {
+                alert('⚠️ Pilih lokasi yang berbeda!');
+                return;
             }
 
-            // Update frames every 2 seconds
-            setInterval(updateFrames, 2000);
-            updateFrames(); // Initial update
+            const btn = document.getElementById('calculate-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghitung...';
 
-            // Handle route form submission
-            $('#route-form').submit(function(e) {
-                e.preventDefault();
-                
-                const startNode = $('#start-node').val();
-                const endNode = $('#end-node').val();
-                
-                // Show loading spinner
-                $('#loading').removeClass('d-none');
-                $('#route-result').html('');
-                $('#graph-container').html('');
-                
-                // Get route recommendation
-                $.ajax({
-                    url: '/get_route',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        start: startNode,
-                        end: endNode
-                    }),
-                    dataType: 'json',
-                    success: function(data) {
-                        // Hide loading spinner
-                        $('#loading').addClass('d-none');
-                        
-                        // Display route information
-                        let routeHtml = '<div class="animate__animated animate__fadeIn">';
-                        routeHtml += '<h4 class="mb-3"><i class="fas fa-directions me-2"></i>Rute Terbaik:</h4>';
-                        
-                        // Display route path with arrows
-                        routeHtml += '<div class="route-path">';
-                        for (let i = 0; i < data.route_nodes.length; i++) {
-                            routeHtml += `<span class="route-node">${data.route_nodes[i]}</span>`;
-                            if (i < data.route_nodes.length - 1) {
-                                routeHtml += '<i class="fas fa-chevron-right route-arrow"></i>';
-                            }
-                        }
-                        routeHtml += '</div>';
-                        
-                        routeHtml += '<h4 class="mb-3 mt-4"><i class="fas fa-info-circle me-2"></i>Detail Rute:</h4>';
-                        routeHtml += '<ul class="list-group">';
-                        for (const segment of data.route) {
-                            let statusClass = '';
-                            let statusIcon = '';
-                            
-                            if (segment.status === 'lancar') {
-                                statusClass = 'status-lancar';
-                                statusIcon = '<i class="fas fa-check-circle me-1"></i>';
-                            } else if (segment.status === 'padat') {
-                                statusClass = 'status-padat';
-                                statusIcon = '<i class="fas fa-exclamation-circle me-1"></i>';
-                            } else if (segment.status === 'macet') {
-                                statusClass = 'status-macet';
-                                statusIcon = '<i class="fas fa-times-circle me-1"></i>';
-                            }
-                            
-                            routeHtml += `<li class="list-group-item d-flex justify-content-between align-items-center animate__animated animate__fadeInRight">
-                                <span><i class="fas fa-road me-2"></i>${segment.from} <i class="fas fa-arrow-right mx-2"></i> ${segment.to}</span>
-                                <span class="cctv-badge ${statusClass}">${statusIcon}${segment.status}</span>
-                            </li>`;
-                        }
-                        routeHtml += '</ul></div>';
-                        
-                        $('#route-result').html(routeHtml);
-                        
-                        // Display graph image with animation
-                        $('#graph-container').html(`<img src="data:image/png;base64,${data.graph_image}" class="graph-image animate__animated animate__fadeIn" alt="Route Graph">`);
-                    },
-                    error: function(xhr, status, error) {
-                        // Hide loading spinner
-                        $('#loading').addClass('d-none');
-                        
-                        // Display error message
-                        $('#route-result').html(`<div class="alert alert-danger animate__animated animate__shakeX"><i class="fas fa-exclamation-triangle me-2"></i>Error: ${error}</div>`);
-                    }
-                });
+            document.getElementById('map-container').innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Menghitung rute optimal dengan A*...</p>
+                </div>
+            `;
+            
+            document.getElementById('route-info').classList.remove('show');
+
+            fetch('/get_route_map', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ start: startNode, end: endNode })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayRouteMap(data);
+                    displayRouteInfo(data);
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('map-container').innerHTML = `
+                    <div class="loading">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--danger);"></i>
+                        <p>Error: ${error.message}</p>
+                    </div>
+                `;
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-route"></i> Hitung Rute Optimal';
             });
+        }
+
+        function displayRouteMap(data) {
+            document.getElementById('map-container').innerHTML = data.map_html;
+        }
+
+        function displayRouteInfo(data) {
+            const routeInfo = document.getElementById('route-info');
+            const summary = document.getElementById('route-summary');
+            const details = document.getElementById('route-details');
+
+            summary.innerHTML = `
+                <div class="route-metric">
+                    <i class="fas fa-route"></i>
+                    <div>
+                        <strong>Rute:</strong> ${data.route_nodes.join(' → ')}
+                    </div>
+                </div>
+                <div class="route-metric">
+                    <i class="fas fa-clock"></i>
+                    <div>
+                        <strong>Waktu:</strong> ${data.estimated_time} menit
+                    </div>
+                </div>
+                <div class="route-metric">
+                    <i class="fas fa-car"></i>
+                    <div>
+                        <strong>Total Kendaraan:</strong> ${data.total_vehicles}
+                    </div>
+                </div>
+            `;
+
+            let detailsHTML = '<h4 style="margin-bottom: 0.5rem;">Detail Segmen:</h4>';
+            data.route_details.forEach((segment, idx) => {
+                detailsHTML += `
+                    <div class="route-step">
+                        <div>
+                            <strong>${idx + 1}. ${segment.from} → ${segment.to}</strong>
+                        </div>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <span class="status-badge ${segment.status}">${segment.status}</span>
+                            <span style="color: #6B7280;">
+                                <i class="fas fa-car"></i> ${segment.vehicle_count}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            details.innerHTML = detailsHTML;
+            routeInfo.classList.add('show');
+        }
+
+        function showAllLocations() {
+            document.getElementById('map-container').innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Memuat peta...</p>
+                </div>
+            `;
+            
+            document.getElementById('route-info').classList.remove('show');
+
+            fetch('/get_interactive_map')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('map-container').innerHTML = data.map_html;
+                    } else {
+                        throw new Error(data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        // Cleanup
+        window.addEventListener('beforeunload', () => {
+            if (updateInterval) clearInterval(updateInterval);
+            if (mapUpdateInterval) clearInterval(mapUpdateInterval);
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (updateInterval) clearInterval(updateInterval);
+                if (mapUpdateInterval) clearInterval(mapUpdateInterval);
+            } else {
+                updateInterval = setInterval(updateFrames, 2000);
+                mapUpdateInterval = setInterval(updateTrafficSummary, 5000);
+            }
         });
     </script>
 </body>
